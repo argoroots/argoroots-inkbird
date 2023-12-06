@@ -2,7 +2,11 @@
 import Chart from 'chart.js/auto'
 import 'chartjs-adapter-date-fns'
 
-const apiUrl = 'https://api.roots.ee/inkbird?sensor=Storage&start=2023-12-01&end=2024-01-01'
+const currentDate = new Date()
+const startDate = new Date(currentDate)
+startDate.setDate(currentDate.getDate() - 30)
+
+const apiUrl = `https://api.roots.ee/inkbird?sensor=Storage&start=${startDate.toISOString().substring(0, 10)}&end=${currentDate.toISOString().substring(0, 10)}`
 const chartOptions = {
   spanGaps: 1000 * 60 * 60 * 24 * 2, // 2 days
   responsive: true,
