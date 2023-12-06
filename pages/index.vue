@@ -1,9 +1,65 @@
 <script setup>
 import Chart from 'chart.js/auto'
+import 'chartjs-adapter-date-fns'
+
+const apiUrl = 'https://api.roots.ee/inkbird?sensor=Storage&start=2023-12-01&end=2024-01-01'
+const chartOptions = {
+  spanGaps: 1000 * 60 * 60 * 24 * 2, // 2 days
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: {
+    mode: 'nearest'
+  },
+  scales: {
+    x: {
+      type: 'time',
+      display: true,
+      time: {
+        unit: 'hour',
+        displayFormats: {
+          hour: 'HH:mm',
+          day: 'd. MMM'
+        }
+      },
+      title: {
+        display: false
+      },
+      ticks: {
+        autoSkip: false,
+        maxRotation: 0,
+        major: {
+          enabled: true
+        },
+        font: function (context) {
+          if (context.tick && context.tick.major) {
+            return {
+              weight: 'bold'
+            }
+          }
+        }
+      }
+    },
+    y: {
+      title: {
+        display: true,
+        text: 'Temperature (°C)'
+      }
+    }
+  },
+  plugins: {
+    legend: {
+      display: false
+    },
+    tooltip: {
+      callbacks: {
+        title: context => formatDateFromTimestamp(context.at(0).parsed.x)
+      }
+    }
+  }
+}
 
 const temperatureChart = ref(null)
 const humidityChart = ref(null)
-const apiUrl = 'https://api.roots.ee/inkbird?sensor=Storage&start=2023-12-01&end=2024-01-01'
 
 onMounted(async () => {
   const response = await fetch(apiUrl)
@@ -24,22 +80,19 @@ onMounted(async () => {
   const rowData = data.slice(1)
 
   // Extracting specific columns for chart rendering
-  const labels = rowData.map(row => formatDateAsTimestamp(row[dateIndex]))
+  const labels = rowData.map(row => formatDateTimeZone(row[dateIndex]))
   const temperatureData = rowData.map(row => row[temperatureIndex])
   const humidityData = rowData.map(row => row[humidityIndex])
 
-  const minTimestamp = Math.min(...labels)
-  const maxTimestamp = Math.max(...labels)
-
-  renderTemperatureChart(labels, temperatureData, minTimestamp, maxTimestamp)
-  renderHumidityChart(labels, humidityData, minTimestamp, maxTimestamp)
+  renderTemperatureChart(labels, temperatureData)
+  renderHumidityChart(labels, humidityData)
 })
 
-const renderTemperatureChart = (labels, temperatureData, minTimestamp, maxTimestamp) => {
+function renderTemperatureChart (labels, temperatureData) {
   const ctx = temperatureChart.value.getContext('2d')
+  chartOptions.scales.y.title.text = 'Temperature (°C)'
 
-  return new Chart(ctx, {
-    type: 'line',
+  const c = new Chart(ctx, {
     data: {
       labels,
       datasets: [
@@ -54,47 +107,16 @@ const renderTemperatureChart = (labels, temperatureData, minTimestamp, maxTimest
         }
       ]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          type: 'linear',
-          position: 'bottom',
-          ticks: {
-            callback: value => formatDateFromTimestamp(value),
-            min: minTimestamp,
-            max: maxTimestamp
-          }
-        },
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: 'Temperature (°C)'
-          }
-        }
-      },
-      plugins: {
-        legend: {
-          display: false
-        },
-        tooltip: {
-          callbacks: {
-            title: context => formatDateFromTimestamp(context.at(0).parsed.x),
-            label: context => `${context.parsed.y}°C`
-          }
-        }
-      }
-    }
+    options: chartOptions,
+    type: 'line'
   })
 }
 
-const renderHumidityChart = (labels, humidityData, minTimestamp, maxTimestamp) => {
+function renderHumidityChart (labels, humidityData) {
   const ctx = humidityChart.value.getContext('2d')
+  chartOptions.scales.y.title.text = 'Humidity (%)'
 
-  return new Chart(ctx, {
-    type: 'line',
+  const c = new Chart(ctx, {
     data: {
       labels,
       datasets: [
@@ -109,52 +131,35 @@ const renderHumidityChart = (labels, humidityData, minTimestamp, maxTimestamp) =
         }
       ]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          type: 'linear',
-          position: 'bottom',
-          ticks: {
-            callback: value => formatDateFromTimestamp(value),
-            min: minTimestamp,
-            max: maxTimestamp
-          }
-        },
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: 'Humidity (%)'
-          }
-        }
-      },
-      plugins: {
-        legend: {
-          display: false
-        },
-        tooltip: {
-          callbacks: {
-            title: context => formatDateFromTimestamp(context.at(0).parsed.x),
-            label: context => `${context.parsed.y}%`
-          }
-        }
-      }
-    }
+    options: chartOptions,
+    type: 'line'
   })
 }
 
-const formatDateAsTimestamp = (dateTimeString) => {
-  return new Date(dateTimeString).getTime()
+function formatDateTimeZone (dateString) {
+  const date = new Date(dateString)
+  const tallinnDate = new Date(date.toLocaleString('en-US', { timeZone: 'Europe/Tallinn' }))
+
+  const utcDate = Date.UTC(
+    tallinnDate.getUTCFullYear(),
+    tallinnDate.getUTCMonth(),
+    tallinnDate.getUTCDate(),
+    tallinnDate.getUTCHours(),
+    tallinnDate.getUTCMinutes(),
+    tallinnDate.getUTCSeconds()
+  )
+
+  return new Date(utcDate)
 }
 
-const formatDateFromTimestamp = (timestamp) => {
-  return new Date(timestamp)
-    .toISOString()
-    .replace(/T/, ' ')
-    .replace(/\..+/, '')
-    .substring(0, 16)
+function formatDateFromTimestamp (timestamp) {
+  return new Date(timestamp).toLocaleString('et', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 </script>
 
