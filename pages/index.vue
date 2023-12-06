@@ -31,8 +31,6 @@ onMounted(async () => {
   const minTimestamp = Math.min(...labels)
   const maxTimestamp = Math.max(...labels)
 
-  console.log(minTimestamp, maxTimestamp)
-
   renderTemperatureChart(labels, temperatureData, minTimestamp, maxTimestamp)
   renderHumidityChart(labels, humidityData, minTimestamp, maxTimestamp)
 })
@@ -64,9 +62,9 @@ const renderTemperatureChart = (labels, temperatureData, minTimestamp, maxTimest
           type: 'linear',
           position: 'bottom',
           ticks: {
-            callback: value => formatDateFromTimestamp(value)
-            // min: minTimestamp,
-            // max: maxTimestamp
+            callback: value => formatDateFromTimestamp(value),
+            min: minTimestamp,
+            max: maxTimestamp
           }
         },
         y: {
@@ -78,6 +76,9 @@ const renderTemperatureChart = (labels, temperatureData, minTimestamp, maxTimest
         }
       },
       plugins: {
+        legend: {
+          display: false
+        },
         tooltip: {
           callbacks: {
             title: context => formatDateFromTimestamp(context.at(0).parsed.x),
@@ -130,6 +131,9 @@ const renderHumidityChart = (labels, humidityData, minTimestamp, maxTimestamp) =
         }
       },
       plugins: {
+        legend: {
+          display: false
+        },
         tooltip: {
           callbacks: {
             title: context => formatDateFromTimestamp(context.at(0).parsed.x),
@@ -155,7 +159,7 @@ const formatDateFromTimestamp = (timestamp) => {
 </script>
 
 <template>
-  <div class="h-full w-full p-8 flex flex-col gap-8">
+  <div class="h-full w-full p-16 flex flex-col gap-16">
     <div class="h-1/2">
       <canvas ref="temperatureChart" />
     </div>
