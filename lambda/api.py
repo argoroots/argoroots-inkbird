@@ -1,5 +1,5 @@
-import json
 import boto3
+import json
 
 DYNAMODB_TABLE_NAME = 'inkbird'
 
