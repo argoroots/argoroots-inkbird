@@ -159,7 +159,7 @@ const formatDateFromTimestamp = (timestamp) => {
 </script>
 
 <template>
-  <div class="h-full w-full p-16 flex flex-col gap-16">
+  <div class="h-full w-full py-16 md:p-16 flex flex-col gap-16">
     <div class="h-1/2">
       <canvas ref="temperatureChart" />
     </div>
