@@ -4,12 +4,13 @@ import 'chartjs-adapter-date-fns'
 
 const { params } = useRoute()
 
-const days = params.days ? parseInt(params.days) : 7
+const sensor = params.sensor ? params.sensor.charAt(0).toUpperCase() + params.sensor.slice(1) : null
+const days = params.days ? parseInt(params.days) : 30
 const currentDate = new Date()
 const startDate = new Date(currentDate)
 startDate.setDate(currentDate.getDate() - days)
 
-const apiUrl = `https://api.roots.ee/inkbird?sensor=${params.sensor}&start=${startDate.toISOString().substring(0, 10)}&end=${currentDate.toISOString().substring(0, 10)}`
+const apiUrl = `https://api.roots.ee/inkbird?sensor=${sensor}&start=${startDate.toISOString().substring(0, 10)}&end=${currentDate.toISOString().substring(0, 10)}`
 const chartOptions = {
   spanGaps: 1000 * 60 * 60 * 24,
   responsive: true,
@@ -171,7 +172,11 @@ function formatDateFromTimestamp (timestamp) {
 </script>
 
 <template>
-  <div class="h-full w-full py-16 md:p-16 flex flex-col gap-16">
+  <div class="h-full w-full py-8 md:p-8 flex flex-col gap-16">
+    <h1 class="text-center text-lg font-extrabold">
+      {{ sensor }}
+      <span class="block text-sm font-thin">last {{ days }} days</span>
+    </h1>
     <div class="h-1/2">
       <canvas ref="temperatureChart" />
     </div>
