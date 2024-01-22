@@ -1,5 +1,6 @@
 import boto3
 import json
+from datetime import datetime, timedelta
 
 DYNAMODB_TABLE_NAME = 'inkbird'
 
@@ -34,10 +35,26 @@ def lambda_handler(event, context):
         ScanIndexForward=True
     )
 
-    # Format the data
-    data = [['Date', 'Temperature', 'Humidity']]
+    # Aggregate data by minute and calculate average Temperature and Humidity
+    aggregated_data = {}
     for item in response['Items']:
-        data.append([item['Date'], float(item['Temperature']), float(item['Humidity'])])
+        timestamp = datetime.strptime(item['Date'], '%Y-%m-%dT%H:%M:%S')
+        key = timestamp.strftime('%Y-%m-%dT%H:00:00')
+
+        if key not in aggregated_data:
+            aggregated_data[key] = {'Temperature': [], 'Humidity': []}
+
+        aggregated_data[key]['Temperature'].append(float(item['Temperature']))
+        aggregated_data[key]['Humidity'].append(float(item['Humidity']))
+
+    # Format the aggregated data
+    data = [['Date', 'Temperature', 'Humidity']]
+    for key, values in aggregated_data.items():
+        data.append([
+            key,
+            round(sum(values['Temperature']) / len(values['Temperature']), 1),
+            round(sum(values['Humidity']) / len(values['Humidity']), 1)
+        ])
 
     # Convert data to JSON
     response_json = json.dumps(data)
